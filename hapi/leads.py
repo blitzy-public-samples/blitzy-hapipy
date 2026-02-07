@@ -31,8 +31,14 @@ See Also:
     hapi.error.HapiError: Exception hierarchy for API error responses.
 """
 import time
-from base import BaseClient
-import logging_helper
+try:
+    from hapi.base import BaseClient
+except ImportError:
+    from base import BaseClient
+try:
+    from hapi import logging_helper
+except ImportError:
+    import logging_helper
 #from pprint import pprint
  
 

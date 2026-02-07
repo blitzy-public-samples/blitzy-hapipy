@@ -28,7 +28,10 @@ Example::
     for b in broadcasts:
         print(b.message)
 """
-from base import BaseClient
+try:
+    from hapi.base import BaseClient
+except ImportError:
+    from base import BaseClient
 
 HUBSPOT_BROADCAST_API_VERSION = '1'
 

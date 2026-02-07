@@ -17,7 +17,7 @@ References:
 from collections import defaultdict
 import unittest2
 import simplejson as json
-from StringIO import StringIO
+import io
 from gzip import GzipFile
 
 from hapi.base import BaseClient
@@ -175,7 +175,7 @@ class BaseTest(unittest2.TestCase):
         # so duplicate=key&duplicate=value
         doseq = True
         url, headers, data = self.client._prepare_request(subpath, params, data, opts, doseq)
-        print url
+        print(url)
         self.assertTrue('duplicate=key&duplicate=' in url)
         
     def test_call(self):
@@ -281,9 +281,9 @@ class BaseTest(unittest2.TestCase):
         self.assertEquals(data.get('hello'), 'json')
 
         # Write our data into a gzipped stream
-        sio = StringIO()
+        sio = io.BytesIO()
         gzf = GzipFile(fileobj=sio, mode='wb')
-        gzf.write('{"hello": "gzipped"}')
+        gzf.write(b'{"hello": "gzipped"}')
         gzf.close()
 
         data = json.loads(self.client._process_body(sio.getvalue(), True))

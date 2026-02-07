@@ -46,18 +46,41 @@ Sequence Diagram (Mermaid)::
     BaseClient --> DomainClient: Parsed JSON result
     DomainClient --> Caller: Python dict/list
 """
-import urllib
-import httplib
+try:
+    import urllib.parse as urllib_parse
+    from urllib.parse import urlencode as urllib_urlencode
+except ImportError:
+    import urllib as urllib_parse
+    from urllib import urlencode as urllib_urlencode
+try:
+    import http.client as httplib
+except ImportError:
+    import httplib
 import simplejson as json
-import utils
+try:
+    from hapi import utils
+except ImportError:
+    import utils
 import logging
 import sys
 import time
 import traceback
 import gzip
-import StringIO
+try:
+    from io import StringIO, BytesIO
+except ImportError:
+    from StringIO import StringIO
+    BytesIO = StringIO
 
-from error import HapiError, HapiBadRequest, HapiNotFound, HapiTimeout, HapiServerError, HapiUnauthorized
+try:
+    from hapi.error import HapiError, HapiBadRequest, HapiNotFound, HapiTimeout, HapiServerError, HapiUnauthorized
+except ImportError:
+    from error import HapiError, HapiBadRequest, HapiNotFound, HapiTimeout, HapiServerError, HapiUnauthorized
+
+try:
+    string_types = (str, unicode)
+except NameError:
+    string_types = (str,)
 
 
 _PYTHON25 = sys.version_info < (2, 6)
@@ -322,7 +345,7 @@ class BaseClient(object):
             query = query[1:]
         if query and not query.startswith('&'):
             query = '&' + query
-        url = opts.get('url') or '/%s?%s%s' % (self._get_path(subpath), urllib.urlencode(params, doseq), query)
+        url = opts.get('url') or '/%s?%s%s' % (self._get_path(subpath), urllib_urlencode(params, doseq), query)
         headers = opts.get('headers') or {}
         # Why: [Assumptions Made] — Gzip encoding is always requested via the
         # Accept-Encoding header because HubSpot API responses can be large
@@ -338,7 +361,7 @@ class BaseClient(object):
         # already a string AND the Content-Type is application/json. This
         # allows callers to pass pre-serialized JSON strings or URL-encoded
         # form data (as in FormSubmissionClient) without double-encoding.
-        if data and not isinstance(data, basestring) and headers['Content-Type']=='application/json':
+        if data and not isinstance(data, string_types) and headers['Content-Type']=='application/json':
             data = json.dumps(data)
 
         return url, headers, data
@@ -384,7 +407,9 @@ class BaseClient(object):
         Returns:
             str: Decompressed response body content.
         """
-        sio = StringIO.StringIO(body)
+        if isinstance(body, str):
+            body = body.encode('latin-1')
+        sio = BytesIO(body)
         gf = gzip.GzipFile(fileobj=sio, mode="rb")
         return gf.read()
 
@@ -501,7 +526,7 @@ class BaseClient(object):
                 list if parsing succeeded, the original string if JSON
                 parsing failed, or None if the input was None or empty.
         """
-        if data and isinstance(data, basestring):
+        if data and isinstance(data, (str, bytes)):
             try:
                 data = json.loads(data)
             except ValueError:
@@ -630,7 +655,7 @@ class BaseClient(object):
                 request_info = self._create_request(connection, method, url, headers, data)
                 result = self._execute_request_raw(connection, request_info)
                 break
-            except HapiUnauthorized, e:
+            except HapiUnauthorized as e:
                 # Why: [Alternatives Considered] — Token refresh is handled
                 # inside _call_raw rather than as a separate middleware layer
                 # because it needs access to the retry context (retried flag)
@@ -645,8 +670,8 @@ class BaseClient(object):
                         token_response = utils.refresh_access_token(self.refresh_token, self.client_id)
                         decoded = json.loads(token_response)
                         self.access_token = decoded['access_token']
-                        self.log.info('Retrying with new token %' % (self.access_token))
-                    except Exception, e:
+                        self.log.info('Retrying with new token %s' % (self.access_token))
+                    except Exception as e:
                         self.log.error("Unable to refresh access_token: %s" % (e))
                         raise
                     return self._call_raw(subpath, params=params, method=method, data=data, doseq=doseq, query=query, retried=True, **options)
@@ -658,7 +683,7 @@ class BaseClient(object):
                     elif self.access_token and not self.client_id:
                         self.log.error("In order to enable automated refreshing of your access token, please provide a client_id in addition to a refresh token.")
                     raise
-            except HapiError, e:
+            except HapiError as e:
                 if try_count > num_retries:
                     logging.warning("Too many retries for %s", url)
                     raise

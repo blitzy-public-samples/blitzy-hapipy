@@ -35,7 +35,10 @@ import uuid
 import simplejson as json
 from nose.plugins.attrib import attr
 
-import helper
+try:
+    from hapi.test import helper
+except ImportError:
+    import helper
 from hapi.keywords import KeywordsClient
 
 class KeywordsClientTest(unittest2.TestCase):
@@ -145,7 +148,7 @@ class KeywordsClientTest(unittest2.TestCase):
         keywords = self.client.get_keywords()
         self.assertTrue(len(keywords))
         
-        print "\n\nGot some keywords: %s" % json.dumps(keywords)
+        print("\n\nGot some keywords: %s" % json.dumps(keywords))
     
     @attr('api')
     def test_get_keyword(self):
@@ -174,12 +177,12 @@ class KeywordsClientTest(unittest2.TestCase):
             self.fail("No keywords available for test.")
 
         keyword = keywords[0]
-        print "\n\nGoing to get a specific keyword: %s" % keyword
+        print("\n\nGoing to get a specific keyword: %s" % keyword)
         
         result = self.client.get_keyword(keyword['keyword_guid'])
         self.assertEquals(keyword, result)
         
-        print "\n\nGot a single matching keyword: %s" % keyword['keyword_guid']
+        print("\n\nGot a single matching keyword: %s" % keyword['keyword_guid'])
     
 # Why: [Assumptions Made] — The test_get_keyword_with_visit_lead test is
 # commented out because it requires real website traffic data (visits, leads)
@@ -245,7 +248,7 @@ class KeywordsClientTest(unittest2.TestCase):
         # make sure 'result' has one keyword in it
         self.assertEqual(len(result['keywords']), 1)
         
-        print "\n\nAdded keyword: %s" % json.dumps(result)
+        print("\n\nAdded keyword: %s" % json.dumps(result))
         
         # Why: [Trade-offs] — test_add_keyword uses a local self.keyword_guid
         # (singular) list rather than self.keyword_guids (plural) which is what
@@ -265,12 +268,12 @@ class KeywordsClientTest(unittest2.TestCase):
         check = self.client.get_keywords()
         
         # filter 'check' if it is in this self
-        check = filter(lambda p: p['keyword_guid'] in self.keyword_guid, check)
+        check = list(filter(lambda p: p['keyword_guid'] in self.keyword_guid, check))
         
         # check if it was filtered. If it was, it is in the client
         self.assertEqual(len(check), 1)
         
-        print "\n\nSaved keyword %s" % json.dumps(check)
+        print("\n\nSaved keyword %s" % json.dumps(check))
 
     @attr('api')
     def test_add_keywords(self):
@@ -321,10 +324,10 @@ class KeywordsClientTest(unittest2.TestCase):
         # Make sure they're in the list now
         keywords = self.client.get_keywords()
         
-        keywords = filter(lambda x: x['keyword_guid'] in self.keyword_guids, keywords)
+        keywords = list(filter(lambda x: x['keyword_guid'] in self.keyword_guids, keywords))
         self.assertEqual(len(keywords), 10)
 
-        print "\n\nAdded multiple keywords: %s" % keywords
+        print("\n\nAdded multiple keywords: %s" % keywords)
     
     @attr('api')
     def test_delete_keyword(self):
@@ -351,17 +354,17 @@ class KeywordsClientTest(unittest2.TestCase):
         result = self.client.add_keyword(keyword)
         keywords = result['keywords']
         first_keyword = keywords[0]
-        print "\n\nAbout to delete a keyword, result= %s" % json.dumps(result)
+        print("\n\nAbout to delete a keyword, result= %s" % json.dumps(result))
 
         self.client.delete_keyword(first_keyword['keyword_guid'])
         
         # Make sure it's not in the list now
         keywords = self.client.get_keywords()
         
-        keywords = filter(lambda x: x['keyword_guid'] == first_keyword['keyword_guid'], keywords)
+        keywords = list(filter(lambda x: x['keyword_guid'] == first_keyword['keyword_guid'], keywords))
         self.assertTrue(len(keywords) == 0)
         
-        print "\n\nDeleted keyword %s" % json.dumps(first_keyword)
+        print("\n\nDeleted keyword %s" % json.dumps(first_keyword))
         
     @attr('api')
     def test_utf8_keywords(self):
@@ -400,8 +403,8 @@ class KeywordsClientTest(unittest2.TestCase):
         for utf8_keyword_base in utf8_keyword_bases:
             original_keyword = '%s - %s' % (utf8_keyword_base, str(uuid.uuid4()))
             result = self.client.add_keyword(original_keyword)
-            print "\n\nAdded keyword: %s" % json.dumps(result)
-            print result
+            print("\n\nAdded keyword: %s" % json.dumps(result))
+            print(result)
 
             keywords_results = result.get('keywords')
             keyword_result = keywords_results[0]
@@ -418,12 +421,16 @@ class KeywordsClientTest(unittest2.TestCase):
             # to unicode for comparison, ensuring UTF-8 round-trip fidelity
             # regardless of the API's response encoding.
             # Convert to utf-8 to compare strings. Returned string is \x-escaped
-            if isinstance(original_keyword, unicode):
+            # Why: [Assumptions Made] — In Python 3 str is already unicode, so
+            # the isinstance check uses str; in Python 2 the original 'unicode'
+            # builtin is used. bytes.decode handles the byte-string branch.
+            _text_type = str  # Python 3: str is unicode
+            if isinstance(original_keyword, _text_type):
                 original_unicode_keyword = original_keyword
             else:
                 original_unicode_keyword = original_keyword.decode('utf-8')
 
-            if isinstance(actual_keyword, unicode):
+            if isinstance(actual_keyword, _text_type):
                 actual_unicode_keyword = actual_keyword
             else:
                 actual_unicode_keyword = actual_keyword.decode('utf-8')

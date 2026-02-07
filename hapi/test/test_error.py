@@ -25,6 +25,15 @@ from hapi.error import HapiError, EmptyResult
 
 from nose.tools import ok_
 
+# Why: [Assumptions Made] — In Python 3 there is no 'unicode' builtin; str is
+# already unicode.  Aliasing unicode = str allows the test assertions
+# (unicode(exc)) to work identically under both Python 2 and Python 3 without
+# changing the test logic.
+try:
+    unicode
+except NameError:
+    unicode = str
+
 # Why: [Alternatives Considered] — A local MockResult is used instead of
 # importing EmptyResult from hapi.error because the test needs independent
 # control over attribute values (e.g., setting body and reason to

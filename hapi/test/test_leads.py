@@ -20,14 +20,20 @@ Note:
     diagnostic output during test execution.
 """
 import unittest2
-import helper
+try:
+    from hapi.test import helper
+except ImportError:
+    import helper
 from hapi.leads import LeadsClient
 # Why: [Assumptions Made] — The logger module is imported at module level to trigger
 # configure_log() side effect, which sets up the 'hapi' logger with file and console
 # handlers. This ensures any internal logging from LeadsClient construction or method
 # calls is captured in test_run.log. The import occurs before test execution and
 # configures logging for the entire test session.
-import logger
+try:
+    from hapi.test import logger
+except ImportError:
+    import logger
 import time
 
 class LeadsClientTest(unittest2.TestCase):

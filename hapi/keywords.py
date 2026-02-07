@@ -19,7 +19,10 @@ Example:
     client = KeywordsClient(api_key='demo')
     keywords = client.get_keywords()
 """
-from base import BaseClient
+try:
+    from hapi.base import BaseClient
+except ImportError:
+    from base import BaseClient
 
 KEYWORDS_API_VERSION = 'v1'
 

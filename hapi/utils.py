@@ -24,9 +24,15 @@ HubSpot API endpoints used:
     - GET /contacts/v1/lists/all/contacts/all (token validation)
     - POST /auth/v1/refresh (token refresh)
 """
-import httplib
+try:
+    import http.client as httplib
+except ImportError:
+    import httplib
 import logging
-from error import HapiError
+try:
+    from hapi.error import HapiError
+except ImportError:
+    from error import HapiError
 
 
 # Why: [Assumptions Made] — Custom NullHandler is implemented rather than using

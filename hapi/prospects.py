@@ -25,7 +25,10 @@ Example::
     prospects = client.get_prospects(limit=20)
 
 """
-from base import BaseClient
+try:
+    from hapi.base import BaseClient
+except ImportError:
+    from base import BaseClient
 
 PROSPECTS_API_VERSION = 'v1'
 

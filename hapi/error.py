@@ -35,6 +35,17 @@ All errors are raised by ``BaseClient._execute_request_raw`` in
 to the appropriate exception subclass.
 """
 
+# Why: [Assumptions Made] — Python 2/3 compatibility shims for string type
+# checking. In Python 2, 'unicode' is the text type and 'basestring' is the
+# common base for str (bytes) and unicode. In Python 3, 'str' IS unicode
+# and there is no 'basestring'. These try/except blocks allow the same
+# type-checking code to work in both Python versions.
+try:
+    unicode
+except NameError:
+    # Python 3: str is already unicode
+    unicode = str
+    basestring = str
 
 # Why: [Alternatives Considered] — The Null Object pattern (EmptyResult) is used
 # instead of None checks throughout the error formatting code because HapiError's
@@ -90,6 +101,10 @@ class EmptyResult(object):
             bool: Always returns False.
         """
         return False
+
+    # Why: [Assumptions Made] — Python 3 uses __bool__ instead of __nonzero__
+    # for boolean evaluation. Aliasing ensures falsy behavior in both versions.
+    __bool__ = __nonzero__
 
 
 # Why: [Assumptions Made] — HapiError inherits from ValueError rather than
@@ -202,22 +217,31 @@ class HapiError(ValueError):
         self.err = err
 
     def __str__(self):
-        """Return ASCII-safe string representation of the error diagnostic.
+        """Return string representation of the error diagnostic.
 
-        Encode the full unicode diagnostic output to ASCII with
-        non-ASCII characters replaced by '?' placeholders, ensuring
-        the error message is always printable in Python 2.x contexts
-        where print statements and string concatenation may fail on
-        unicode characters.
+        In Python 2, encode the full unicode diagnostic output to ASCII
+        with non-ASCII characters replaced by '?' placeholders, ensuring
+        the error message is always printable in contexts where print
+        statements and string concatenation may fail on unicode characters.
+
+        In Python 3, return the full unicode output directly since str IS
+        unicode and no ASCII encoding is necessary.
 
         Returns:
-            str: ASCII-encoded diagnostic string with non-ASCII
-                characters replaced by '?'.
+            str: Diagnostic string. In Python 3, contains full unicode
+                characters. In Python 2, non-ASCII characters replaced
+                by '?'.
         """
-        # Why: [Assumptions Made] — The __str__ method encodes unicode to ASCII with
-        # 'replace' error handling because Python 2.x print and string concatenation
-        # operations may fail on unicode characters. The 'replace' strategy substitutes
-        # non-ASCII chars with '?' to ensure the error message is always printable.
+        # Why: [Trade-offs] — In Python 2, __str__ must return bytes so we
+        # encode to ASCII with 'replace' to avoid UnicodeEncodeError in print
+        # and concatenation contexts. In Python 3, str is already unicode so
+        # we return the __unicode__ output directly to preserve non-ASCII
+        # content (e.g. internationalized API error messages). The sys.version
+        # check is used rather than try/except because the behavior difference
+        # is fundamental to the return type contract.
+        import sys
+        if sys.version_info[0] >= 3:
+            return self.__unicode__()
         return self.__unicode__().encode('ascii', 'replace')
 
 

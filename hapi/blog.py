@@ -29,7 +29,10 @@ Usage example::
     client = BlogClient(api_key='demo')
     blogs = client.get_blogs()
 """
-from base import BaseClient
+try:
+    from hapi.base import BaseClient
+except ImportError:
+    from base import BaseClient
 import simplejson as json
 
 BLOG_API_VERSION = '1'

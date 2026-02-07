@@ -19,7 +19,10 @@ Usage example::
 import logging
 logger = logging.getLogger(__name__)
 
-from base import BaseClient
+try:
+    from hapi.base import BaseClient
+except ImportError:
+    from base import BaseClient
 
 
 class FormSubmissionClient(BaseClient):

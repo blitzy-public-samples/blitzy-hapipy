@@ -30,7 +30,10 @@ import time
 
 from nose.plugins.attrib import attr
 
-import helper
+try:
+    from hapi.test import helper
+except ImportError:
+    import helper
 from hapi.broadcast import Broadcast, BroadcastClient
 
 
@@ -148,7 +151,7 @@ class BroadcastClientTest(unittest2.TestCase):
 
         broadcast = broadcasts[0].to_dict()
         self.assertIsNotNone(broadcast['channelGuid'])
-        print "\n\nFetched some broadcasts"
+        print("\n\nFetched some broadcasts")
 
         broadcast_guid = broadcast['broadcastGuid']
         # Re-fetch the broadcast using different call
